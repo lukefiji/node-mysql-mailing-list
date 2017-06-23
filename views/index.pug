@@ -1,0 +1,8 @@
+- if (messages.info)
+  .message.info
+    span= messages.info
+h1 JOIN US
+p.lead Enter your email to join #[strong #{count}] others on our waitlist. We are 100% not a cult.
+form(method="POST" action="/register")
+  input(type="text" name="email" class="form" placeholder="Enter Your Email")
+  button Join Now

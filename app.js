@@ -1,6 +1,25 @@
 require("dotenv").config();
+const express = require("express");
 const mysql = require("mysql");
 const faker = require("faker");
+const bodyParser = require("body-parser");
+const flash = require("express-flash");
+const cookieParser = require("cookie-parser");
+const session = require("express-session");
+
+const app = express();
+
+// Set Pug as view engine
+app.set("view engine", "pug");
+
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Set up flash
+app.use(cookieParser("Node MySQL Mailing List"));
+app.use(session({ cookie: { maxAge: 600000 } }));
+app.use(flash());
+
+const SERVER_PORT = 8080;
 
 // Create a connection to mySQL database
 const connection = mysql.createConnection({
@@ -9,28 +28,44 @@ const connection = mysql.createConnection({
   database: process.env.DB_NAME
 });
 
-// Generate email and insert into db
-// var person = {
-//   email: faker.internet.email(),
-//   created_at: faker.date.past(5)
-// };
+app.get("/", (req, res) => {
+  //Find count of users in DB
+  const q = "SELECT COUNT(*) AS count FROM users";
+  connection.query(q, function(err, results) {
+    if (err) {
+      req.flash("info", `Error: ${err.code}`);
+      console.log(err.code);
+    }
 
-// connection.query("INSERT INTO users SET ?", person, (err, results, fields) => {
-//   if (err) throw err;
-//   console.log(results);
-// });
-
-const data = [];
-
-for (let i = 0; i < 500; i++) {
-  data.push([faker.internet.email(), faker.date.past(7)]);
-}
-
-var q = "INSERT INTO users (email, created_at) VALUES ?";
-
-connection.query(q, [data], (err, result) => {
-  if (err) throw err;
-  console.log(result);
+    // Render Pug template /w count
+    res.render("index", { count: results[0].count });
+  });
 });
 
-connection.end();
+app.post("/register", (req, res) => {
+  // Collect post and send query to MySQL
+  const register = { email: req.body.email };
+  const q = "INSERT INTO users SET ?";
+  connection.query(q, register, (err, result) => {
+    if (err) {
+      // Flash message if there is an error
+      req.flash("info", "This email has already been registered.");
+      console.log(err.code);
+    } else {
+      // Flash message if no error
+      req.flash("info", "Thank you for registering!");
+    }
+    res.redirect("/");
+  });
+});
+
+//404 Route (ALWAYS Keep this as the last route)
+app.get("*", function(req, res) {
+  res.send("404 - Not Found", 404);
+});
+
+app.listen(SERVER_PORT, () => {
+  console.log(`App listening on port ${SERVER_PORT}!`);
+});
+
+function getNumUsers() {}
